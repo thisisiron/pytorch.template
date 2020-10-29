@@ -1,0 +1,9 @@
+torch
+torchvision
+torchsummary
+openpyxl
+adamp
+opencv-python
+albumentations
+
+tb-nightly
