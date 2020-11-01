@@ -45,8 +45,10 @@ class CustomRandAugment(object):
     def __call__(self, image):
         ops = random.choices(self.augment_pool, k=self.n)
         ops = A.Compose(ops)
-        image = ops(image=image)['image']
-        return self.normalize(image=image)
+        out = ops(image=image)
+        image = out['image']
+        image2 = out['image2']
+        return self.normalize(image=image, image2=image2)
 
 
 def get_transforms(image_size: Tuple[int], augment_type: str = 'default', image_norm: str = 'imagenet'):
@@ -64,7 +66,8 @@ def get_transforms(image_size: Tuple[int], augment_type: str = 'default', image_
     if augment_type == 'default':
         train_transform = A.Compose([A.HorizontalFlip(),
                                      A.Resize(height=image_size[0], width=image_size[1]),
-                                     A.Normalize(mean=mean, std=std)])
+                                     A.Normalize(mean=mean, std=std)],
+                                     additional_targets={'image2':'image'})
     else:
         train_transform = CustomRandAugment(1, mean=mean, std=std, image_size=image_size, augment_type=augment_type)
 
