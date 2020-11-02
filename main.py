@@ -28,7 +28,7 @@ from utils import print_log
 def train_process(opt, generator, discriminator, criterion,
                   g_optimizer, d_optimizer, g_scheduler, d_scheduler,
                   train_loader, val_loader, log_dir, writer, device):
-    save_iter = 100
+    save_epoch = 2 
 
     for epoch in range(1, opt.num_epoch + 1):
 
@@ -45,7 +45,7 @@ def train_process(opt, generator, discriminator, criterion,
         logger.info(f'Learning rate(D) annealed to : {d_optimizer.param_groups[0]["lr"]:.6f} @epoch{epoch}')
 
         minutes, seconds = divmod(time.time() - total_start, 60)
-        log = f"[{epoch}/{opt.num_epoch}] | time: {minutes:2d} min {seconds:.4f} sec"
+        log = f"[{epoch}/{opt.num_epoch}] | time: {int(minutes):2d} min {seconds:.4f} sec"
         print_log(log, train_status)
 
         # TODO: write the function of evaluating validation
@@ -58,8 +58,8 @@ def train_process(opt, generator, discriminator, criterion,
         # minutes, seconds = divmode(time.time() - total_start, 60)
         # log = f"[{epoch}/{opt.num_epoch}] | loss: {val_status['loss']:.4f} | time: {minutes:2d} min {seconds:.4f} sec"
 
-        if total_iter % save_iter == 0:
-            logger.info(f'[{epoch}] Find the best model! Change the best model.')
+        if epoch % save_epoch == 0:
+            # logger.info(f'[{epoch}] Find the best model! Change the best model.')
             checkpoint = f'ckpt_{epoch}'
 
             filename = os.path.join(log_dir, checkpoint, 'gene')
