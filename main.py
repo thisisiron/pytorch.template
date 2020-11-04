@@ -59,8 +59,9 @@ def train_process(opt, generator, discriminator, criterion,
         # log = f"[{epoch}/{opt.num_epoch}] | loss: {val_status['loss']:.4f} | time: {minutes:2d} min {seconds:.4f} sec"
 
         if epoch % save_epoch == 0:
-            # logger.info(f'[{epoch}] Find the best model! Change the best model.')
+            logger.info(f'[{epoch}] Save the model!')
             checkpoint = f'ckpt_{epoch}'
+            os.makedirs(os.path.join(log_dir, checkpoint))
 
             filename = os.path.join(log_dir, checkpoint, 'gene')
             torch.save(generator.state_dict(), filename)
