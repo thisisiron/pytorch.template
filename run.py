@@ -70,7 +70,7 @@ def train(opt, epoch: int, generator, discriminator, criterion,
             image_dict['real_b'] = real_b.detach()
             image_dict['fake_a'] = fake_b.detach()
 
-            log = f"step: {i}/{len(train_loader)} | time: {time.time() - start:.4f} sec"
+            log = f"{i + (epoch - 1) * len(train_loader)} -> step: {i}/{len(train_loader)} | time: {time.time() - start:.4f} sec"
             print_log(log, status)
             write_board(writer, status, i + (epoch - 1) * len(train_loader), image_dict, mode='train') 
         else:
