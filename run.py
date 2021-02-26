@@ -1,5 +1,7 @@
 import os
 import time
+from collections import defaultdict
+
 from typing import Tuple
 from typing import Optional 
 
@@ -13,15 +15,13 @@ from datasets.transform import get_test_transform
 from datasets.dataset import InferDataset
 from utils import write_board
 from utils import print_log
+from utils import AverageMeter
 
 
 def train(opt, epoch: int, generator, discriminator, criterion,
           g_optimizer, d_optimizer, train_loader, log_dir, writer, device) -> dict:
-    total_g_loss: float = 0.0
-    total_d_loss: float = 0.0
-    total_rec_loss: float = 0.0
-    status: dict = {}
-    num_data: float = 0.0
+
+    status: dict = defaultdict(AverageMeter) 
 
     for i, (real_a, real_b) in enumerate(train_loader, 1):
         start = time.time()
@@ -55,14 +55,9 @@ def train(opt, epoch: int, generator, discriminator, criterion,
         loss_g.backward()
         g_optimizer.step()
 
-        num_data += real_a.size(0)
-        total_g_loss += loss_g.item()
-        total_d_loss += loss_d.item()
-        total_rec_loss += loss_rec.item()
-
-        status['G_loss'] = loss_g.item()
-        status['D_loss'] = loss_d.item()
-        status['Rec_loss'] = loss_rec.item()
+        status['G_loss'].update(loss_g.item())
+        status['D_loss'].update(loss_d.item())
+        status['Rec_loss'].update(loss_rec.item())
 
         if i % 100 == 0:  # print every 100 mini-batches and save images
             image_dict: dict = {}
@@ -80,40 +75,57 @@ def train(opt, epoch: int, generator, discriminator, criterion,
     del real_a, real_b 
     torch.cuda.empty_cache()
 
-    status['G_loss'] = total_g_loss / len(train_loader) 
-    status['D_loss'] = total_d_loss / len(train_loader) 
-    status['Rec_loss'] = total_rec_loss / len(train_loader) 
-
     return status 
 
 
-def evaluate(model, val_loader, criterion, writer, epoch, device):
-    num_data: float = 0.0
-    total_loss: float = 0.0
-    status: dict = {}
+def evaluate(opt, epoch, generator, discriminator, val_loader, criterion, writer, device):
+
+    status: dict = defaultdict(AverageMeter) 
 
     with torch.no_grad():
-        for i, data in enumerate(val_loader):
-            x = data['image']
-            x = x.to(device)
+        for i, (real_a, real_b) in enumerate(val_loader):
+            start = time.time()
+            real_a = real_a.to(device)
+            real_b = real_b.to(device)
+            
+            fake_b = generator(real_a)
 
-            logit = model(x)
+            fake_ab = torch.cat((real_a, fake_b), 1)
+            pred_fake = discriminator(fake_ab.detach())
+            loss_fake = criterion['gan'](pred_fake, False)
 
-            loss = criterion(logit, x)
+            real_ab = torch.cat((real_a, real_b), 1)
+            pred_real = discriminator(real_ab)
+            loss_real = criterion['gan'](pred_real, True)
 
-            num_data += x.size(0)
-            total_loss += loss.item()
+            loss_d = loss_fake + loss_real
 
-            status['loss'] = loss.item()
+            fake_ab = torch.cat((real_a, fake_b), 1)
+            pred_fake = discriminator(fake_ab)
+            loss_gan = criterion['gan'](pred_fake, True)
+            
+            loss_rec = criterion['l1'](fake_b, real_b) * opt.lamb_rec
+            loss_g = loss_gan + loss_rec
 
-            write_board(writer, status, i + (epoch - 1) * len(train_loader), mode='train') 
+            status['G_loss'].update(loss_g.item())
+            status['D_loss'].update(loss_d.item())
+            status['Rec_loss'].update(loss_rec.item())
 
-    # TODO: Check this lines 
-    del x
+            if i % 100 == 0:  # print every 100 mini-batches and save images
+                image_dict: dict = {}
+                image_dict['real_a'] = real_a.detach() 
+                image_dict['real_b'] = real_b.detach()
+                image_dict['fake_a'] = fake_b.detach()
+
+                log = f"{i + (epoch - 1) * len(val_loader)} -> step: {i}/{len(val_loader)} | time: {time.time() - start:.4f} sec"
+                print_log(log, status)
+                write_board(writer, status, i + (epoch - 1) * len(train_loader), image_dict, mode='val') 
+            else:
+                write_board(writer, status, i + (epoch - 1) * len(train_loader), mode='val') 
+
+    del real_a, real_b 
     torch.cuda.empty_cache()
 
-    status['total_loss'] = total_loss / len(val_loader) 
-    
     return status 
 
 
