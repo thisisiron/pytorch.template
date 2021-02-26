@@ -32,14 +32,6 @@ def get_scheduler(optimizer, scheduler_name: str, opt: dict):
     return scheduler
 
 
-def write_board(writer, status: dict, iteration: int, imagebox: Optional[dict] = None, mode: str = 'train'):
-    for key, val in status.items():
-        writer.add_scalar(f"{key}/{mode}", val, iteration)
-    if imagebox is not None:
-        for tag, imgs in imagebox.items():
-            writer.add_images(f"{mode}/{tag}", (imgs + 1) * .5, iteration)  # from (-1 ~ 1) to (0 ~ 1)
-
-
 def load_weight(model, weight_file):
     """Load trained weight.
     You should put your weight file on the root directory with the name of `weight_file`.
@@ -52,7 +44,36 @@ def load_weight(model, weight_file):
         logger.info('=> random initialized model will be used.')
 
 
+def write_board(writer, status: dict, iteration: int, imagebox: Optional[dict] = None, mode: str = 'train'):
+    for key, val in status.items():
+        writer.add_scalar(f"{key}/{mode}", val.avg, iteration)
+    if imagebox is not None:
+        for tag, imgs in imagebox.items():
+            writer.add_images(f"{mode}/{tag}", (imgs + 1) * .5, iteration)  # from (-1 ~ 1) to (0 ~ 1)
+
+
+def write_lr(writer, lr: float, iteration: int, name: str):
+    writer.add_scalar(name, lr, iteration)
+
+
 def print_log(log: str, status: dict):
     for name, val in status.items():
-        log += f' | {name}: {val:.4f}'
+        log += f' | {name}: {val.avg:.4f}'
     logger.info(log)
+
+
+class AverageMeter:
+    def __init__(self):
+        self.reset()
+
+    def reset(self):
+        self.val = 0
+        self.avg = 0
+        self.sum = 0
+        self.count = 0
+
+    def update(self, val, n=1):
+        self.val = val
+        self.sum += val * n
+        self.count += n
+        self.avg = self.sum / self.count
