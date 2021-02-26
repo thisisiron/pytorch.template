@@ -32,7 +32,7 @@ def train_process(opt, generator, discriminator, criterion,
 
     for epoch in range(1, opt.num_epoch + 1):
 
-        # Train Process
+        ### Train Process ### 
         total_start = time.time()
         generator.train()
         discriminator.train()
@@ -43,21 +43,24 @@ def train_process(opt, generator, discriminator, criterion,
         d_scheduler.step()
         logger.info(f'Learning rate(G) annealed to : {g_optimizer.param_groups[0]["lr"]:.6f} @epoch{epoch}')
         logger.info(f'Learning rate(D) annealed to : {d_optimizer.param_groups[0]["lr"]:.6f} @epoch{epoch}')
+        write_lr(writer, g_optimizer.param_groups[0]["lr"], epoch, name='gene')
+        write_lr(writer, d_optimizer.param_groups[0]["lr"], epoch, name='disc')
 
         minutes, seconds = divmod(time.time() - total_start, 60)
-        log = f"[{epoch}/{opt.num_epoch}] | time: {int(minutes):2d} min {seconds:.4f} sec"
+        log = f">>> [Train] Epoch: {epoch}/{opt.num_epoch} | Time: {int(minutes):2d} min {seconds:.4f} sec"
         print_log(log, train_status)
 
-        # TODO: write the function of evaluating validation
-        # Val Process
-        # total_start = time.time()
-        # generator.eval()
-        # discriminator.eval()
-        # val_status = evaluate(generator, discriminator, val_loader, criterion, writer, epoch, device=device)
+        ### Val Process ###
+        total_start = time.time()
+        generator.eval()
+        discriminator.eval()
+        val_status = evaluate(opt, epoch, generator, discriminator, val_loader, criterion, writer, device=device)
 
-        # minutes, seconds = divmode(time.time() - total_start, 60)
-        # log = f"[{epoch}/{opt.num_epoch}] | loss: {val_status['loss']:.4f} | time: {minutes:2d} min {seconds:.4f} sec"
+        minutes, seconds = divmode(time.time() - total_start, 60)
+        log = f">>>   [Val] Epoch: {epoch}/{opt.num_epoch} | Time: {int(minutes):2d} min {seconds:.4f} sec"
+        print_log(log, train_status)
 
+        # Saving model
         if epoch % save_epoch == 0:
             logger.info(f'[{epoch}] Save the model!')
             checkpoint = f'ckpt_{epoch}'
