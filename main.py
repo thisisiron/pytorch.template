@@ -12,8 +12,7 @@ from torch.utils.data import DataLoader
 from torch.nn.parallel import DataParallel
 from torch.utils.tensorboard import SummaryWriter
 
-from run import train
-from run import evaluate
+from run import iteration 
 from configuration.const import logger
 from datasets.transform import get_transforms
 from datasets.dataset import TrainDataset
@@ -23,6 +22,7 @@ from losses import GANLoss
 from utils import get_optimizer
 from utils import get_scheduler
 from utils import print_log
+from utils import write_lr
 
 
 def train_process(opt, generator, discriminator, criterion,
@@ -36,8 +36,8 @@ def train_process(opt, generator, discriminator, criterion,
         total_start = time.time()
         generator.train()
         discriminator.train()
-        train_status = train(opt, epoch, generator, discriminator, criterion,
-                             g_optimizer, d_optimizer, train_loader, log_dir, writer, device=device)
+        train_status = iteration(opt, epoch, generator, discriminator, criterion,
+                                  g_optimizer, d_optimizer, train_loader, log_dir, writer, train=True, device=device)
 
         g_scheduler.step()
         d_scheduler.step()
@@ -54,9 +54,10 @@ def train_process(opt, generator, discriminator, criterion,
         total_start = time.time()
         generator.eval()
         discriminator.eval()
-        val_status = evaluate(opt, epoch, generator, discriminator, val_loader, criterion, writer, device=device)
+        train_status = iteration(opt, epoch, generator, discriminator, criterion,
+                                 g_optimizer, d_optimizer, train_loader, log_dir, writer, train=False, device=device)
 
-        minutes, seconds = divmode(time.time() - total_start, 60)
+        minutes, seconds = divmod(time.time() - total_start, 60)
         log = f">>>   [Val] Epoch: {epoch}/{opt.num_epoch} | Time: {int(minutes):2d} min {seconds:.4f} sec"
         print_log(log, train_status)
 

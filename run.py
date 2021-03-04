@@ -18,8 +18,8 @@ from utils import print_log
 from utils import AverageMeter
 
 
-def train(opt, epoch: int, generator, discriminator, criterion,
-          g_optimizer, d_optimizer, train_loader, log_dir, writer, device) -> dict:
+def iteration(opt, epoch: int, generator, discriminator, criterion,
+          g_optimizer, d_optimizer, train_loader, log_dir, writer, train, device) -> dict:
 
     status: dict = defaultdict(AverageMeter) 
 
@@ -40,9 +40,10 @@ def train(opt, epoch: int, generator, discriminator, criterion,
 
         loss_d = loss_fake + loss_real
 
-        d_optimizer.zero_grad()
-        loss_d.backward()
-        d_optimizer.step()
+        if train:
+            d_optimizer.zero_grad()
+            loss_d.backward()
+            d_optimizer.step()
 
         fake_ab = torch.cat((real_a, fake_b), 1)
         pred_fake = discriminator(fake_ab)
@@ -51,9 +52,10 @@ def train(opt, epoch: int, generator, discriminator, criterion,
         loss_rec = criterion['l1'](fake_b, real_b) * opt.lamb_rec
         loss_g = loss_gan + loss_rec
 
-        g_optimizer.zero_grad()
-        loss_g.backward()
-        g_optimizer.step()
+        if train:
+            g_optimizer.zero_grad()
+            loss_g.backward()
+            g_optimizer.step()
 
         status['G_loss'].update(loss_g.item())
         status['D_loss'].update(loss_d.item())
@@ -67,62 +69,11 @@ def train(opt, epoch: int, generator, discriminator, criterion,
 
             log = f"{i + (epoch - 1) * len(train_loader)} -> step: {i}/{len(train_loader)} | time: {time.time() - start:.4f} sec"
             print_log(log, status)
-            write_board(writer, status, i + (epoch - 1) * len(train_loader), image_dict, mode='train') 
+            write_board(writer, status, i + (epoch - 1) * len(train_loader), image_dict, mode='train' if train else 'val')
         else:
-            write_board(writer, status, i + (epoch - 1) * len(train_loader), mode='train') 
+            write_board(writer, status, i + (epoch - 1) * len(train_loader), mode='train' if train else 'val') 
 
     # TODO: Check this lines 
-    del real_a, real_b 
-    torch.cuda.empty_cache()
-
-    return status 
-
-
-def evaluate(opt, epoch, generator, discriminator, val_loader, criterion, writer, device):
-
-    status: dict = defaultdict(AverageMeter) 
-
-    with torch.no_grad():
-        for i, (real_a, real_b) in enumerate(val_loader):
-            start = time.time()
-            real_a = real_a.to(device)
-            real_b = real_b.to(device)
-            
-            fake_b = generator(real_a)
-
-            fake_ab = torch.cat((real_a, fake_b), 1)
-            pred_fake = discriminator(fake_ab.detach())
-            loss_fake = criterion['gan'](pred_fake, False)
-
-            real_ab = torch.cat((real_a, real_b), 1)
-            pred_real = discriminator(real_ab)
-            loss_real = criterion['gan'](pred_real, True)
-
-            loss_d = loss_fake + loss_real
-
-            fake_ab = torch.cat((real_a, fake_b), 1)
-            pred_fake = discriminator(fake_ab)
-            loss_gan = criterion['gan'](pred_fake, True)
-            
-            loss_rec = criterion['l1'](fake_b, real_b) * opt.lamb_rec
-            loss_g = loss_gan + loss_rec
-
-            status['G_loss'].update(loss_g.item())
-            status['D_loss'].update(loss_d.item())
-            status['Rec_loss'].update(loss_rec.item())
-
-            if i % 100 == 0:  # print every 100 mini-batches and save images
-                image_dict: dict = {}
-                image_dict['real_a'] = real_a.detach() 
-                image_dict['real_b'] = real_b.detach()
-                image_dict['fake_a'] = fake_b.detach()
-
-                log = f"{i + (epoch - 1) * len(val_loader)} -> step: {i}/{len(val_loader)} | time: {time.time() - start:.4f} sec"
-                print_log(log, status)
-                write_board(writer, status, i + (epoch - 1) * len(train_loader), image_dict, mode='val') 
-            else:
-                write_board(writer, status, i + (epoch - 1) * len(train_loader), mode='val') 
-
     del real_a, real_b 
     torch.cuda.empty_cache()
 
