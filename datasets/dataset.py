@@ -9,12 +9,6 @@ import numpy as np
 import torch
 from torch.utils.data import Dataset
 
-from configuration.const import IMG_EXTENSIONS
-
-
-def is_image_file(filename):
-    return any(filename.endswith(extension) for extension in IMG_EXTENSIONS)
-
 
 class TrainDataset(Dataset):
     def __init__(self, image_dir: str, transform=None):

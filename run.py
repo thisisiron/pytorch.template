@@ -10,7 +10,6 @@ import torch
 import torch.nn.functional as F
 from torch.utils.data import DataLoader
 
-from configuration.const import logger
 from datasets.transform import get_test_transform
 from datasets.dataset import InferDataset
 from utils import write_board

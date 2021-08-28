@@ -13,7 +13,6 @@ from torch.nn.parallel import DataParallel
 from torch.utils.tensorboard import SummaryWriter
 
 from run import iteration 
-from configuration.const import logger
 from datasets.transform import get_transforms
 from datasets.dataset import TrainDataset
 from networks.model import define_G 
@@ -23,6 +22,10 @@ from utils import get_optimizer
 from utils import get_scheduler
 from utils import print_log
 from utils import write_lr
+
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 def train_process(opt, generator, discriminator, criterion,

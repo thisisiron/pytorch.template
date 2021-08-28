@@ -4,8 +4,6 @@ import torch
 from torch import optim
 from torch.optim import lr_scheduler
 
-from configuration.const import logger
-
 
 def get_optimizer(param, opt_name: str, lr: float, weight_decay: float):
     if opt_name == 'SGD':
