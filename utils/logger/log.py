@@ -11,8 +11,8 @@ import seaborn as sn
 import logging.config
 
 
-# logging.config.fileConfig('./logger/logging.conf')
-# logger = logging.getLogger('Mask')
+logging.config.fileConfig('./utils/logger/logging.conf')
+logger = logging.getLogger('Mask')
 
 
 def print_log(status: dict):

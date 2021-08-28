@@ -11,17 +11,17 @@ from torch.utils.data import Dataset
 
 
 class TrainDataset(Dataset):
-    def __init__(self, image_dir: str, transform=None):
-        self.sketch_paths = sorted(glob(os.path.join(image_dir, 'A', '*')))
-        self.color_paths = sorted(glob(os.path.join(image_dir, 'B', '*')))
+    def __init__(self, image_dir: str, transform=None, mode='train'):
+        self.A_paths = sorted(glob(os.path.join(image_dir, f'{mode}A', '*')))
+        self.B_paths = sorted(glob(os.path.join(image_dir, f'{mode}B', '*')))
         self.transform = transform
 
     def __len__(self):
-        return len(self.sketch_paths)
+        return len(self.A_paths)
 
     def __getitem__(self, idx):
-        sketch = cv2.imread(self.sketch_paths[idx])
-        color = cv2.imread(self.color_paths[idx])[..., ::-1]  # BGR -> RGB
+        sketch = cv2.imread(self.A_paths[idx])
+        color = cv2.imread(self.B_paths[idx])[..., ::-1]  # BGR -> RGB
 
         if self.transform:
             transformed = self.transform(image=sketch, image2=color)

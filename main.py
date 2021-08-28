@@ -13,19 +13,22 @@ from torch.nn.parallel import DataParallel
 from torch.utils.tensorboard import SummaryWriter
 
 from run import iteration 
-from datasets.transform import get_transforms
-from datasets.dataset import TrainDataset
-from networks.model import define_G 
-from networks.model import define_D 
-from losses import GANLoss
-from utils import get_optimizer
-from utils import get_scheduler
-from utils import print_log
+from data.transform import get_transforms
+from data.dataset import TrainDataset
+from model.model import define_G 
+from model.model import define_D 
+
+from loss.losses import GANLoss
+
+from optim import get_optimizer
+from scheduler import get_scheduler
 from utils import write_lr
 
-import logging
-
-logger = logging.getLogger(__name__)
+from utils import logger
+from utils import logging
+from utils import print_log
+# import logging
+# logger = logging.getLogger(__name__)
 
 
 def train_process(opt, generator, discriminator, criterion,
@@ -50,8 +53,8 @@ def train_process(opt, generator, discriminator, criterion,
         write_lr(writer, d_optimizer.param_groups[0]["lr"], epoch, name='disc')
 
         minutes, seconds = divmod(time.time() - total_start, 60)
-        log = f">>> [Train] Epoch: {epoch}/{opt.num_epoch} | Time: {int(minutes):2d} min {seconds:.4f} sec"
-        print_log(log, train_status)
+        logger.info(f">>> [Train] Epoch: {epoch}/{opt.num_epoch} | Time: {int(minutes):2d} min {seconds:.4f} sec")
+        print_log(train_status)
 
         ### Val Process ###
         total_start = time.time()
@@ -61,8 +64,8 @@ def train_process(opt, generator, discriminator, criterion,
                                  g_optimizer, d_optimizer, train_loader, log_dir, writer, train=False, device=device)
 
         minutes, seconds = divmod(time.time() - total_start, 60)
-        log = f">>>   [Val] Epoch: {epoch}/{opt.num_epoch} | Time: {int(minutes):2d} min {seconds:.4f} sec"
-        print_log(log, train_status)
+        logger.info(f">>>   [Val] Epoch: {epoch}/{opt.num_epoch} | Time: {int(minutes):2d} min {seconds:.4f} sec")
+        print_log(train_status)
 
         # Saving model
         if epoch % save_epoch == 0:
@@ -149,8 +152,8 @@ def main():
                                                         augment_type=opt.augment_type, 
                                                         image_norm=opt.image_norm)
 
-        trainset = TrainDataset(image_dir=os.path.join(opt.data_dir, 'train'), transform=train_transform)
-        valset = TrainDataset(image_dir=os.path.join(opt.data_dir, 'val'), transform=val_transform)
+        trainset = TrainDataset(image_dir=opt.data_dir, transform=train_transform)
+        valset = TrainDataset(image_dir=opt.data_dir, transform=val_transform)
 
         train_loader = DataLoader(dataset=trainset, batch_size=opt.batch_size, shuffle=True, num_workers=opt.num_workers)
         val_loader = DataLoader(dataset=valset, batch_size=opt.batch_size, shuffle=False, num_workers=opt.num_workers)

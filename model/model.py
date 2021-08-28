@@ -5,9 +5,9 @@ from torch import nn
 from torch.nn import init
 import torch.nn.functional as F
 from torch.utils import model_zoo
-from networks.generator import ResnetGenerator  
-from networks.discriminator import NLayerDiscriminator
-from networks.discriminator import PixelDiscriminator 
+from model.generator import ResnetGenerator  
+from model.discriminator import NLayerDiscriminator
+from model.discriminator import PixelDiscriminator 
 
 
 def init_net(net, init_type='normal', init_gain=0.02, gpu_id='cuda:0'):

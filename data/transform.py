@@ -4,6 +4,8 @@ from typing import Tuple
 from PIL import Image
 import albumentations as A
 
+from utils import logger
+
 
 def color_augment_pool():
     augs = [A.RGBShift(),
