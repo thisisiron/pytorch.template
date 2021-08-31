@@ -5,3 +5,6 @@ experiments/
 nohup.out
 
 download.sh
+
+venv
+.idea
