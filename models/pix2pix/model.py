@@ -5,13 +5,12 @@ from torch import nn
 from torch.nn import init
 import torch.nn.functional as F
 from torch.utils import model_zoo
-from model.generator import ResnetGenerator  
-from model.discriminator import NLayerDiscriminator
-from model.discriminator import PixelDiscriminator 
+from models.generator import ResnetGenerator
+from models.discriminator import NLayerDiscriminator
+from models.discriminator import PixelDiscriminator
 
 
-def init_net(net, init_type='normal', init_gain=0.02, gpu_id='cuda:0'):
-    net.to(gpu_id)
+def init_net(net, init_type='normal', init_gain=0.02):
     init_weights(net, init_type, gain=init_gain)
     return net
 
@@ -66,9 +65,9 @@ def define_D(input_nc, ndf, netD,
     elif netD == 'pixel':
         net = PixelDiscriminator(input_nc, ndf, norm_layer=norm_layer, use_sigmoid=use_sigmoid)
     else:
-        raise NotImplementedError('Discriminator model name [%s] is not recognized' % net)
+        raise NotImplementedError('Discriminator models name [%s] is not recognized' % net)
 
-    return init_net(net, init_type, init_gain, gpu_id)
+    return init_net(net, init_type, init_gain)
 
 
 def define_G(input_nc, output_nc, ngf, norm='batch', use_dropout=False, init_type='normal', init_gain=0.02, gpu_id='cuda:0'):
@@ -77,4 +76,4 @@ def define_G(input_nc, output_nc, ngf, norm='batch', use_dropout=False, init_typ
 
     net = ResnetGenerator(input_nc, output_nc, ngf, norm_layer=norm_layer, use_dropout=use_dropout, n_blocks=9)
 
-    return init_net(net, init_type, init_gain, gpu_id)
+    return init_net(net, init_type, init_gain)
