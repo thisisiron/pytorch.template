@@ -4,8 +4,6 @@ from typing import Tuple
 from PIL import Image
 import albumentations as A
 
-from utils import logger
-
 
 def color_augment_pool():
     augs = [A.RGBShift(),
@@ -55,11 +53,9 @@ def get_transforms(image_size: Tuple[int], augment_type: str = 'default', image_
     assert len(image_size) == 2
 
     if image_norm == 'imagenet':
-        logger.info('Using ImageNet mean/std Norm.')
         mean = (0.485, 0.456, 0.406)
         std = (0.229, 0.224, 0.225)
     else:
-        logger.info('Using Zero-centerd Norm.')
         mean = (0.5, 0.5, 0.5)
         std = (0.5, 0.5, 0.5)
 
@@ -83,11 +79,9 @@ def get_test_transform(image_size: Tuple[int], image_norm: str = 'imagenet'):
     assert len(image_size) == 2
 
     if image_norm == 'imagenet':
-        logger.info('Using ImageNet mean/std Norm.')
         mean = (0.485, 0.456, 0.406)
         std = (0.229, 0.224, 0.225)
     else:
-        logger.info('Using Zero-centerd Norm.')
         mean = (0.5, 0.5, 0.5)
         std = (0.5, 0.5, 0.5)
 
