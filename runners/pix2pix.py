@@ -140,7 +140,7 @@ class Pix2PixRunner(Runner):
                 image_dict = {}
                 image_dict['real_a'] = real_a.detach()
                 image_dict['real_b'] = real_b.detach()
-                image_dict['fake_a'] = fake_b.detach()
+                image_dict['fake_b'] = fake_b.detach()
 
                 write_board(self.writer, status,
                             self.current_iter,
