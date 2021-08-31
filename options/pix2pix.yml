@@ -4,6 +4,8 @@ mode: 'train'
 runner: 'Pix2Pix'
 dataset: ''
 
+seed: 42
+
 data:
   data_path: ''
   batch_size: 64

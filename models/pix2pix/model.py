@@ -1,13 +1,10 @@
 import functools
 
-import torch
 from torch import nn
 from torch.nn import init
-import torch.nn.functional as F
-from torch.utils import model_zoo
-from models.generator import ResnetGenerator
-from models.discriminator import NLayerDiscriminator
-from models.discriminator import PixelDiscriminator
+from models.pix2pix.generator import ResnetGenerator
+from models.pix2pix.discriminator import NLayerDiscriminator
+from models.pix2pix.discriminator import PixelDiscriminator
 
 
 def init_net(net, init_type='normal', init_gain=0.02):
