@@ -22,7 +22,7 @@ class Selfie2AnimeDataset(Dataset):
         return len(self.A_paths)
 
     def __getitem__(self, idx):
-        selfie = cv2.imread(self.A_paths[idx])
+        selfie = cv2.imread(self.A_paths[idx])[..., ::-1]
         anime = cv2.imread(self.B_paths[idx])[..., ::-1]  # BGR -> RGB
 
         if self.transform:
@@ -42,7 +42,7 @@ class Selfie2AnimeDataLoader:
                                                         image_norm=opt['image_norm'])
 
         trainset = Selfie2AnimeDataset(image_dir=opt['data_path'], transform=train_transform)
-        valset = Selfie2AnimeDataset(image_dir=opt['data_path'], transform=val_transform)
+        valset = Selfie2AnimeDataset(image_dir=opt['data_path'], transform=val_transform, mode='test')
 
         self.train_loader = DataLoader(dataset=trainset, batch_size=opt['batch_size'], shuffle=True,
                                        num_workers=opt['num_workers'])

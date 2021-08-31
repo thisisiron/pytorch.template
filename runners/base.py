@@ -14,9 +14,7 @@ class Runner:
         logging.config.fileConfig('./utils/logger/logging.conf')
         self.logger = logging.getLogger(__name__)
 
-        dirname = datetime.now().strftime("%m%d%H%M") + f'_{opt["name"]}'
-        self.log_dir = os.path.join('./experiments', dirname)
-        os.makedirs(self.log_dir, exist_ok=True)
+        self.make_logdir()
         self.logger.info(f'LOG DIR: {self.log_dir}')
 
         fh = logging.FileHandler(os.path.join(self.log_dir, f'output.log'))
@@ -30,14 +28,20 @@ class Runner:
             log += f'\n\t{name}: {val.avg:.6f}'
         self.logger.info(f'{log}')
 
+    def make_logdir(self):
+        dirname = datetime.now().strftime("%m%d%H%M") + f'_{self.opt["name"]}'
+        self.log_dir = os.path.join('./experiments', dirname)
+        # os.makedirs(self.log_dir, exist_ok=True)
+        os.makedirs(os.path.join(self.log_dir, 'weights'), exist_ok=True)
+
     def save_option(self):
         with open(os.path.join(self.log_dir, 'opt.yml'), 'w') as f:
             yaml.dump(self.opt, f, indent=2)
 
-    def load_checkpoint(self, file_name):
+    def load_checkpoint(self):
         raise NotImplementedError
 
-    def save_checkpoint(self, file_name="checkpoint.pth.tar", is_best=0):
+    def save_checkpoint(self):
         raise NotImplementedError
 
     def run(self):

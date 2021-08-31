@@ -86,6 +86,8 @@ class Pix2PixRunner(Runner):
             self.discriminator.eval()
             self.run_batches(train=False)
 
+            self.save_checkpoint()
+
     def run_batches(self, train=True):
         mode = 'train' if train else 'val'
         total_start = time.time()
@@ -95,7 +97,7 @@ class Pix2PixRunner(Runner):
         pbar = tqdm(enumerate(data_loader, 1), total=len(data_loader))
 
         for i, (real_a, real_b) in pbar:
-            self.current_iter = i + (self.current_epoch - 1) * len(data_loader)
+            self.current_iter = i + (self.current_epoch - 1) * len(data_loader)   # TODO: modify this line to "+= i'
             real_a = real_a.to(self.device)
             real_b = real_b.to(self.device)
 
@@ -132,14 +134,14 @@ class Pix2PixRunner(Runner):
             status['D_loss'].update(loss_d.item())
             status['Rec_loss'].update(loss_rec.item())
 
-            if i % 100 == 0:  # print every 100 mini-batches and save images
+            pbar.set_description(f'Iter({self.current_iter}) ---> g_loss: {loss_g.item():.6} | d_loss: {loss_d.item():.6} | rec_loss: {loss_rec.item():.6}', refresh=True)
+
+            if i % self.opt['save_iter_freq'] == 0:  # print every 100 mini-batches and save images
                 image_dict = {}
                 image_dict['real_a'] = real_a.detach()
                 image_dict['real_b'] = real_b.detach()
                 image_dict['fake_a'] = fake_b.detach()
 
-                pbar.set_description(f'Iter({self.current_iter}) ', refresh=True)
-                self.print_log(status)
                 write_board(self.writer, status,
                             self.current_iter,
                             image_dict, mode=mode)
@@ -172,7 +174,7 @@ class Pix2PixRunner(Runner):
         pass
 
     def load_checkpoint(self):
-        filename = os.path.join(self.opt['exp_dir'], 'weights', f'ckpt{self.opt["ckpt"]}')
+        filename = os.path.join(self.opt['exp_dir'], 'weights', f'ckpt{self.opt["ckpt"]}.pth.tar')
         try:
             self.logger.info("Loading checkpoint '{}'".format(filename))
             ckpt = torch.load(filename)
@@ -183,15 +185,15 @@ class Pix2PixRunner(Runner):
             self.g_optimizer.load_state_dict(ckpt['g_optimizer'])
             self.discriminator.load_state_dict(ckpt['discriminator'], strict=True)
             self.d_optimizer.load_state_dict(ckpt['d_optimizer'])
-            self.seed = ckpt['manual_seed']
+            self.seed = ckpt['seed']
 
-            self.logger.info(
-                f"Checkpoint loaded successfully from {self.opt['exp_dir']} at (epoch {self.current_epoch}) at (iteration {self.current_iter})")
+            self.logger.info(f"Checkpoint loaded successfully from {self.opt['exp_dir']} \
+                               at (epoch {self.current_epoch}) at (iteration {self.current_iter})")
         except OSError as e:
             self.logger.info(f"Checkpoint is not exist from {self.opt['exp_dir']}")
             raise
 
-    def save_checkpoint(self, file_name="checkpoint.pth.tar", is_best=0):
+    def save_checkpoint(self):
         state = {
             'epoch': self.current_epoch,
             'iteration': self.current_iter,
@@ -201,8 +203,9 @@ class Pix2PixRunner(Runner):
             'd_optimizer': self.d_optimizer.state_dict(),
             'seed': self.opt['seed']
         }
+
         # Save the state
-        torch.save(state, os.path.join(self.log_dir, 'weights', f'ckpt{self.opt["ckpt"]}'))
+        torch.save(state, os.path.join(self.log_dir, 'weights', f'ckpt{self.current_epoch}.pth.tar'))
 
     def finalize(self):
         pass
