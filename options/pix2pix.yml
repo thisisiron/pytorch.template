@@ -1,0 +1,33 @@
+name: ''
+mode: 'train'
+
+runner: 'Pix2Pix'
+dataset: ''
+
+data:
+  data_path: ''
+  batch_size: 64
+  num_workers: 3
+  image_norm: 'zero'
+  image_size:
+    - 224
+    - 224
+  augment_type: 'default'
+
+disc: 'basic'
+ndf: 64
+ngf: 64
+
+gan_loss: 'lsgan'
+lamb_gan: 1.0
+lamb_rec: 10.0
+
+optim: 'adam'
+lr: 1e-4
+weight_decay: 1e-6
+
+scheduler: null
+lr_decay_iters: 50
+
+weight_file: null
+ckpt: null
