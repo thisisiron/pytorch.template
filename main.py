@@ -12,7 +12,8 @@ def main():
     with open(f'{args.opt_path}') as f:
         opt = yaml.safe_load(f)
 
-    runner = getattr(import_module(f"runners.{opt['runner'].lower()}"), f"{opt['runner']}Runner")(opt)
+    dataloaders = getattr(import_module(f"dataloaders.{opt['dataset'].lower()}"), f"{opt['dataset']}DataLoader")(opt['data'])
+    runner = getattr(import_module(f"runners.{opt['runner'].lower()}"), f"{opt['runner']}Runner")(opt, dataloaders)
     runner.run()
 
 

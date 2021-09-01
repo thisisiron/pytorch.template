@@ -36,7 +36,7 @@ class Runner:
 
     def save_option(self):
         with open(os.path.join(self.log_dir, 'opt.yml'), 'w') as f:
-            yaml.dump(self.opt, f, indent=2)
+            yaml.dump(self.opt, f, indent=2, sort_keys=False, default_flow_style=False)
 
     def load_checkpoint(self):
         raise NotImplementedError

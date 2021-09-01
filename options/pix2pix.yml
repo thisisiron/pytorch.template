@@ -1,8 +1,8 @@
-name: ''
-mode: 'train'
+name: null 
+mode: train
 
-runner: 'Pix2Pix'
-dataset: ''
+runner: Pix2Pix
+dataset: Selfie2Anime
 
 seed: 42
 
@@ -16,8 +16,8 @@ data:
     - 256
   augment_type: 'default'
 
-save_iter_freq: 20
 
+save_iter_freq: 20
 epochs: 20
 
 disc: 'basic'

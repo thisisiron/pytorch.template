@@ -2,6 +2,7 @@ import os
 import time
 from tqdm import tqdm
 from collections import defaultdict
+from importlib import import_module
 
 import torch
 from torch.nn.parallel import DataParallel
@@ -22,7 +23,7 @@ from dataloaders.selfie2anime import Selfie2AnimeDataLoader
 
 
 class Pix2PixRunner(Runner):
-    def __init__(self, opt):
+    def __init__(self, opt, dataloaders):
         super().__init__(opt)
         self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
@@ -45,8 +46,8 @@ class Pix2PixRunner(Runner):
         # Tensorboard setting
         self.writer = SummaryWriter(log_dir=self.log_dir)
 
-        # Load data loaders
-        self.dataloaders = Selfie2AnimeDataLoader(opt['data'])
+        # Data loaders
+        self.dataloaders = dataloaders 
 
         # Loss setting
         self.criterion = {}
