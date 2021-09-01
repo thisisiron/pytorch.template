@@ -1,4 +1,4 @@
-# GAN Template
+# Pytorch Template
 
 ## Requirements
 - Pytorch
@@ -8,31 +8,35 @@
 
 ## Directory Structure
 ```
-GAN-Template.pytorch/
+pytorch.template/
 │
-├── main.py - main script to start training
-├── run.py
+├── main.py          -> main script to start training
 │
-├── utils.py 
+├── dataloaders/ 
+│   ├── DATASET.py   ->
+│   └── transform.py
 │
-├── losses.py 
-│
-├── configuration/
-│   ├── const.py
-│   └── logging.conf
-│
-├── datasets/ 
-    ├── dataset.py
-    └── transform.py
+├── models/          ->
+├── options/         ->
+├── runners/         ->
+│   └── base.py
+├── utils/ 
+│   ├── logger/      ->
+│   ├── general.py
+│   ├── losses.py
+│   ├── meter.py
+│   ├── optims.py
+│   ├── schedulers.py
+│   └── tensorboard.py
 ```
 
 ## Usage
 Ex. Run main.py in background
 ```
-nohup python -u main.py &
+python main.py options/CONFIG.yaml
 ```
 
 ### Tensorboad
 ```
-tensorbaord --bind_all --logdir LOG_DIR
+tensorbaord --bind_all --logdir LOG_DIR/
 ```
