@@ -37,13 +37,12 @@ class Selfie2AnimeDataset(Dataset):
 
 class Selfie2AnimeDataLoader:
     def __init__(self, opt):
-        train_transform, val_transform = get_transforms(opt['image_size'],
-                                                        augment_type=opt['augment_type'],
-                                                        image_norm=opt['image_norm'])
+        train_transform, val_transform = get_transforms(opt.image_size,
+                                                        augment_type=opt.augment_type,
+                                                        image_norm=opt.image_norm)
 
-        trainset = Selfie2AnimeDataset(image_dir=opt['data_path'], transform=train_transform)
-        valset = Selfie2AnimeDataset(image_dir=opt['data_path'], transform=val_transform, mode='test')
+        trainset = Selfie2AnimeDataset(image_dir=opt.data_path, transform=train_transform)
+        valset = Selfie2AnimeDataset(image_dir=opt.data_path, transform=val_transform, mode='test')
 
-        self.train_loader = DataLoader(dataset=trainset, batch_size=opt['batch_size'], shuffle=True,
-                                       num_workers=opt['num_workers'])
-        self.val_loader = DataLoader(dataset=valset, batch_size=opt['batch_size'], shuffle=False, num_workers=opt['num_workers'])
+        self.train_loader = DataLoader(dataset=trainset, batch_size=opt.batch_size, shuffle=True, pin_memory=True, num_workers=opt.num_workers)
+        self.val_loader = DataLoader(dataset=valset, batch_size=opt.batch_size, shuffle=False, pin_memory=True, num_workers=opt.num_workers)

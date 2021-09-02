@@ -2,7 +2,6 @@ import os
 import time
 from tqdm import tqdm
 from collections import defaultdict
-from importlib import import_module
 
 import torch
 from torch.nn.parallel import DataParallel
@@ -18,40 +17,36 @@ from utils.optims import get_optimizer
 from utils.schedulers import get_scheduler
 from utils.tensorboard import write_board
 from utils.meter import AverageMeter
-
-from dataloaders.selfie2anime import Selfie2AnimeDataLoader
+from utils.general import colorstr
 
 
 class Pix2PixRunner(Runner):
     def __init__(self, opt, dataloaders):
         super().__init__(opt)
+        self.current_epoch = 1
+        self.current_iter = 1
         self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-
-        # Model setting
-        self.logger.info('Build Model')
-
-        self.generator = define_G(3, 3, opt['ngf']).to(self.device)
-        total_param = sum([p.numel() for p in self.generator.parameters()])
-        self.logger.info(f'Generator size: {total_param} tensors')
-
-        self.discriminator = define_D(3 + 3, opt['ndf'], opt['disc']).to(self.device)
-        total_param = sum([p.numel() for p in self.discriminator.parameters()])
-        self.logger.info(f'Discriminator size: {total_param} tensors')
-
-        if torch.cuda.device_count() > 1:
-            self.logger.info(f"Let's use {torch.cuda.device_count()} GPUs!")
-            self.generator = DataParallel(self.generator)
-            self.discriminator = DataParallel(self.discriminator)
-
-        # Tensorboard setting
-        self.writer = SummaryWriter(log_dir=self.log_dir)
 
         # Data loaders
         self.dataloaders = dataloaders 
 
+        # Model setting
+        self.logger.info('Build Model')
+
+        self.generator = define_G(3, 3, opt.ngf).to(self.device)
+        total_param = sum([p.numel() for p in self.generator.parameters()])
+        self.logger.info(f'Generator size: {total_param} tensors')
+
+        self.discriminator = define_D(3 + 3, opt.ndf, opt.disc).to(self.device)
+        total_param = sum([p.numel() for p in self.discriminator.parameters()])
+        self.logger.info(f'Discriminator size: {total_param} tensors')
+
+        # Tensorboard setting
+        self.writer = SummaryWriter(log_dir=self.exp_dir)
+
         # Loss setting
         self.criterion = {}
-        self.criterion['gan'] = GANLoss(use_lsgan=True if opt['gan_loss'] == 'lsgan' else False).to(self.device)
+        self.criterion['gan'] = GANLoss(use_lsgan=True if opt.gan_loss == 'lsgan' else False).to(self.device)
         self.criterion['rec'] = torch.nn.L1Loss().to(self.device)
 
         # Optimizer setting
@@ -61,9 +56,16 @@ class Pix2PixRunner(Runner):
         self.logger.info(f'Initial Learning rate(D): {self.d_optimizer.param_groups[0]["lr"]:.6f}')
 
         # Scheduler setting
-        if opt['scheduler']:
+        if opt.scheduler:
             self.g_scheduler = get_scheduler(self.g_optimizer, opt.scheduler, opt)
             self.d_scheduler = get_scheduler(self.d_optimizer, opt.scheduler, opt)
+
+        self.load_checkpoint()
+
+        if torch.cuda.device_count() > 1:
+            self.logger.info(f"Let's use {torch.cuda.device_count()} GPUs!")
+            self.generator = DataParallel(self.generator)
+            self.discriminator = DataParallel(self.discriminator)
 
     def run(self):
         try:
@@ -74,7 +76,7 @@ class Pix2PixRunner(Runner):
             self.finalize()
 
     def train(self):
-        for epoch in range(1, self.opt['epochs'] + 1):
+        for epoch in range(self.current_epoch, self.opt.epochs + 1):
             self.current_epoch = epoch
 
             ### Train Process ###
@@ -98,7 +100,7 @@ class Pix2PixRunner(Runner):
         pbar = tqdm(enumerate(data_loader, 1), total=len(data_loader))
 
         for i, (real_a, real_b) in pbar:
-            self.current_iter = i + (self.current_epoch - 1) * len(data_loader)   # TODO: modify this line to "+= i'
+            self.current_iter += i  # TODO: modify this line to "+= i'
             real_a = real_a.to(self.device)
             real_b = real_b.to(self.device)
 
@@ -123,7 +125,7 @@ class Pix2PixRunner(Runner):
             pred_fake = self.discriminator(fake_ab)
             loss_gan = self.criterion['gan'](pred_fake, True)
 
-            loss_rec = self.criterion['rec'](fake_b, real_b) * self.opt['lamb_rec']
+            loss_rec = self.criterion['rec'](fake_b, real_b) * self.opt.lamb_rec
             loss_g = loss_gan + loss_rec
 
             if train:
@@ -135,9 +137,9 @@ class Pix2PixRunner(Runner):
             status['D_loss'].update(loss_d.item())
             status['Rec_loss'].update(loss_rec.item())
 
-            pbar.set_description(f'Iter({self.current_iter}) ---> g_loss: {loss_g.item():.6} | d_loss: {loss_d.item():.6} | rec_loss: {loss_rec.item():.6}', refresh=True)
+            pbar.set_description(f'[{mode}]({self.current_iter}) ---> g_loss: {loss_g.item():.6} | d_loss: {loss_d.item():.6} | rec_loss: {loss_rec.item():.6}', refresh=True)
 
-            if i % self.opt['save_iter_freq'] == 0:  # print every 100 mini-batches and save images
+            if i % self.opt.save_iter_freq == 0:  # print every 100 mini-batches and save images
                 image_dict = {}
                 image_dict['real_a'] = real_a.detach()
                 image_dict['real_b'] = real_b.detach()
@@ -155,7 +157,7 @@ class Pix2PixRunner(Runner):
         del real_a, real_b
         torch.cuda.empty_cache()
 
-        if self.opt['scheduler']:
+        if self.opt.scheduler:
             self.g_scheduler.step()
             self.d_scheduler.step()
 
@@ -168,15 +170,18 @@ class Pix2PixRunner(Runner):
 
         minutes, seconds = divmod(time.time() - total_start, 60)
         self.logger.info(
-            f">>> [{mode}] Epoch: {self.current_epoch}/{self.opt['epochs']} | Time: {int(minutes):2d} min {seconds:.4f} sec")
+            f">>> [{mode}] Epoch: {self.current_epoch}/{self.opt.epochs} | Time: {int(minutes):2d} min {seconds:.4f} sec")
         self.print_log(status)
 
     def validate(self):
         pass
 
     def load_checkpoint(self):
-        filename = os.path.join(self.opt['exp_dir'], 'weights', f'ckpt{self.opt["ckpt"]}.pth.tar')
+        filename = self.opt.init_weight
+        if filename is None:
+            return
         try:
+
             self.logger.info("Loading checkpoint '{}'".format(filename))
             ckpt = torch.load(filename)
 
@@ -188,25 +193,25 @@ class Pix2PixRunner(Runner):
             self.d_optimizer.load_state_dict(ckpt['d_optimizer'])
             self.seed = ckpt['seed']
 
-            self.logger.info(f"Checkpoint loaded successfully from {self.opt['exp_dir']} \
-                               at (epoch {self.current_epoch}) at (iteration {self.current_iter})")
-        except OSError as e:
-            self.logger.info(f"Checkpoint is not exist from {self.opt['exp_dir']}")
-            raise
+            self.logger.info(colorstr('blue', f"Checkpoint loaded successfully from {self.opt.exp_dir} \
+                    at (epoch {self.current_epoch}) at (iteration {self.current_iter})"))
+        except FileNotFoundError as e:
+            self.logger.info(colorstr('red', f"Checkpoint is not exist from {filename}"))
+            # raise
 
     def save_checkpoint(self):
         state = {
             'epoch': self.current_epoch,
             'iteration': self.current_iter,
-            'generator': self.generator.state_dict(),
+            'generator': self.generator.module.state_dict() if torch.cuda.device_count() > 1 else self.generator.state_dict(),
             'g_optimizer': self.g_optimizer.state_dict(),
-            'discriminator': self.discriminator.state_dict(),
+            'discriminator': self.discriminator.module.state_dict() if torch.cuda.device_count() > 1 else self.discriminator.state_dict(),
             'd_optimizer': self.d_optimizer.state_dict(),
-            'seed': self.opt['seed']
+            'seed': self.opt.seed
         }
 
         # Save the state
-        torch.save(state, os.path.join(self.log_dir, 'weights', f'ckpt{self.current_epoch}.pth.tar'))
+        torch.save(state, os.path.join(self.exp_dir, 'weights', f'ckpt{self.current_epoch}.pth.tar'))
 
     def finalize(self):
         pass

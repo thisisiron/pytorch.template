@@ -1,4 +1,4 @@
-name: null 
+name: exp 
 mode: train
 
 runner: Pix2Pix
@@ -6,15 +6,14 @@ dataset: Selfie2Anime
 
 seed: 42
 
-data:
-  data_path: '../datasets/selfie2anime/'
-  batch_size: 64
-  num_workers: 3
-  image_norm: 'zero'
-  image_size:
-    - 256
-    - 256
-  augment_type: 'default'
+data_path: '../datasets/selfie2anime/'
+batch_size: 64
+num_workers: 3
+image_norm: 'zero'
+image_size:
+  - 256
+  - 256
+augment_type: 'default'
 
 
 save_iter_freq: 20
@@ -35,5 +34,7 @@ weight_decay: 0.000001
 scheduler: null
 lr_decay_iters: 50
 
-weight_file: null
+exp_dir: null
+
+init_weight: null
 ckpt: null

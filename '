@@ -22,8 +22,7 @@ class Runner:
 
         if self.opt.ckpt is not None:
             self.opt.init_weight = os.path.join(self.opt.exp_dir, 'weights', f'ckpt{self.opt.ckpt}.pth.tar')
-
-        self.opt.exp_dir = self.exp_dir
+        self.optexp_dir = self.exp_dir
         self.save_option()
 
     def print_log(self, status):
@@ -39,8 +38,9 @@ class Runner:
         os.makedirs(os.path.join(self.exp_dir, 'weights'), exist_ok=True)
 
     def save_option(self):
+        import pdb;pdb.set_trace()
         with open(os.path.join(self.exp_dir, 'opt.yml'), 'w') as f:
-            yaml.safe_dump(vars(self.opt), f, indent=2, sort_keys=False)
+            yaml.dump(vars(self.opt), f, indent=2, sort_keys=False)
 
     def load_checkpoint(self):
         raise NotImplementedError
