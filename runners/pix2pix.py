@@ -5,17 +5,16 @@ from collections import defaultdict
 
 import torch
 from torch.nn.parallel import DataParallel
-from torch.utils.tensorboard import SummaryWriter
 
 from runners.base import Runner
 
 from models.pix2pix.model import define_G
 from models.pix2pix.model import define_D
 
+from utils import get_root_logger
 from utils.losses import GANLoss
 from utils.optims import get_optimizer
 from utils.schedulers import get_scheduler
-from utils.tensorboard import write_board
 from utils.meter import AverageMeter
 from utils.general import colorstr
 
@@ -27,22 +26,21 @@ class Pix2PixRunner(Runner):
         self.current_iter = 1
         self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
+        logger = get_root_logger()
+
         # Data loaders
         self.dataloaders = dataloaders 
 
         # Model setting
-        self.logger.info('Build Model')
+        logger.info('Build Model')
 
         self.generator = define_G(3, 3, opt.ngf).to(self.device)
         total_param = sum([p.numel() for p in self.generator.parameters()])
-        self.logger.info(f'Generator size: {total_param} tensors')
+        logger.info(f'Generator size: {total_param} tensors')
 
         self.discriminator = define_D(3 + 3, opt.ndf, opt.disc).to(self.device)
         total_param = sum([p.numel() for p in self.discriminator.parameters()])
-        self.logger.info(f'Discriminator size: {total_param} tensors')
-
-        # Tensorboard setting
-        self.writer = SummaryWriter(log_dir=self.exp_dir)
+        logger.info(f'Discriminator size: {total_param} tensors')
 
         # Loss setting
         self.criterion = {}
@@ -52,8 +50,8 @@ class Pix2PixRunner(Runner):
         # Optimizer setting
         self.g_optimizer = get_optimizer(self.generator.parameters(), opt)
         self.d_optimizer = get_optimizer(self.discriminator.parameters(), opt)
-        self.logger.info(f'Initial Learning rate(G): {self.g_optimizer.param_groups[0]["lr"]:.6f}')
-        self.logger.info(f'Initial Learning rate(D): {self.d_optimizer.param_groups[0]["lr"]:.6f}')
+        logger.info(f'Initial Learning rate(G): {self.g_optimizer.param_groups[0]["lr"]:.6f}')
+        logger.info(f'Initial Learning rate(D): {self.d_optimizer.param_groups[0]["lr"]:.6f}')
 
         # Scheduler setting
         if opt.scheduler:
@@ -63,15 +61,15 @@ class Pix2PixRunner(Runner):
         self.load_checkpoint()
 
         if torch.cuda.device_count() > 1:
-            self.logger.info(f"Let's use {torch.cuda.device_count()} GPUs!")
+            logger.info(f"Let's use {torch.cuda.device_count()} GPUs!")
             self.generator = DataParallel(self.generator)
             self.discriminator = DataParallel(self.discriminator)
 
     def run(self):
         try:
             self.train()
-        except KeyboardInterrupt:
-            self.logger.info('')
+        except KeyboardInterrupt as e:
+            raise e
         finally:
             self.finalize()
 
@@ -93,14 +91,15 @@ class Pix2PixRunner(Runner):
 
     def run_batches(self, train=True):
         mode = 'train' if train else 'val'
-        total_start = time.time()
+        epoch_start_time = time.time()
         status = defaultdict(AverageMeter)
 
         data_loader = self.dataloaders.train_loader if train else self.dataloaders.val_loader
         pbar = tqdm(enumerate(data_loader, 1), total=len(data_loader))
 
         for i, (real_a, real_b) in pbar:
-            self.current_iter += i  # TODO: modify this line to "+= i'
+            status['iter'] = self.current_iter
+
             real_a = real_a.to(self.device)
             real_b = real_b.to(self.device)
 
@@ -144,45 +143,36 @@ class Pix2PixRunner(Runner):
                 image_dict['real_a'] = real_a.detach()
                 image_dict['real_b'] = real_b.detach()
                 image_dict['fake_b'] = fake_b.detach()
-
-                write_board(self.writer, status,
-                            self.current_iter,
-                            image_dict, mode=mode)
+                self.messenger(status, imagebox=image_dict, mode=mode)
             else:
-                write_board(self.writer, status,
-                            self.current_iter,
-                            mode=mode)
+                self.messenger(status, mode=mode)
+
+            self.current_iter += 1
 
         # TODO: Check this lines
-        del real_a, real_b
-        torch.cuda.empty_cache()
+        # del real_a, real_b
+        # torch.cuda.empty_cache()
 
         if self.opt.scheduler:
             self.g_scheduler.step()
             self.d_scheduler.step()
 
-        self.logger.info(
-            f'Learning rate(G) annealed to : {self.g_optimizer.param_groups[0]["lr"]:.6f} @epoch{self.current_epoch}')
-        self.logger.info(
-            f'Learning rate(D) annealed to : {self.d_optimizer.param_groups[0]["lr"]:.6f} @epoch{self.current_epoch}')
-        self.writer.add_scalar('gene_lr', self.g_optimizer.param_groups[0]["lr"], self.current_epoch)
-        self.writer.add_scalar('disc_lr', self.d_optimizer.param_groups[0]["lr"], self.current_epoch)
-
-        minutes, seconds = divmod(time.time() - total_start, 60)
-        self.logger.info(
-            f">>> [{mode}] Epoch: {self.current_epoch}/{self.opt.epochs} | Time: {int(minutes):2d} min {seconds:.4f} sec")
-        self.print_log(status)
+        status['lrs'] = {'generator': self.g_optimizer.param_groups[0]["lr"], 'discriminator': self.d_optimizer.param_groups[0]["lr"]}
+        status['epoch'] = self.current_epoch
+        status['iter'] = self.current_iter
+        self.messenger(status, epoch_start_time, is_epoch=True, mode=mode)
 
     def validate(self):
         pass
 
     def load_checkpoint(self):
+        logger = get_root_logger()
         filename = self.opt.init_weight
         if filename is None:
             return
         try:
 
-            self.logger.info("Loading checkpoint '{}'".format(filename))
+            logger.info("Loading checkpoint '{}'".format(filename))
             ckpt = torch.load(filename)
 
             self.current_epoch = ckpt['epoch']
@@ -193,10 +183,10 @@ class Pix2PixRunner(Runner):
             self.d_optimizer.load_state_dict(ckpt['d_optimizer'])
             self.seed = ckpt['seed']
 
-            self.logger.info(colorstr('blue', f"Checkpoint loaded successfully from {self.opt.exp_dir} \
+            logger.info(colorstr('blue', f"Checkpoint loaded successfully from {self.opt.exp_dir} \
                     at (epoch {self.current_epoch}) at (iteration {self.current_iter})"))
         except FileNotFoundError as e:
-            self.logger.info(colorstr('red', f"Checkpoint is not exist from {filename}"))
+            logger.info(colorstr('red', f"Checkpoint is not exist from {filename}"))
             # raise
 
     def save_checkpoint(self):
@@ -211,7 +201,7 @@ class Pix2PixRunner(Runner):
         }
 
         # Save the state
-        torch.save(state, os.path.join(self.exp_dir, 'weights', f'ckpt{self.current_epoch}.pth.tar'))
+        torch.save(state, os.path.join(self.opt.exp_dir, 'weights', f'ckpt{self.current_epoch}.pth.tar'))
 
     def finalize(self):
         pass

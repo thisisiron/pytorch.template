@@ -36,5 +36,8 @@ lr_decay_iters: 50
 
 exp_dir: null
 
+print_freq: 20
+use_tb_logger: True
+
 init_weight: null
 ckpt: null
