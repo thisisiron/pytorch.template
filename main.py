@@ -1,8 +1,9 @@
 import os
 import yaml
-from datetime import datetime 
 import argparse
+from datetime import datetime 
 from importlib import import_module
+
 from utils.general import seed_everything
 
 
@@ -14,18 +15,11 @@ def make_expdir(name):
     return exp_dir
 
 
-def get_latest_run(search_dir):
-    from glob import glob
-    # Return path to most recent 'last.pt' in /runs (i.e. to --resume from)
-    last_list = glob.glob(f'{search_dir}/**/last*.pth.tar', recursive=True)
-    return max(last_list, key=os.path.getctime) if last_list else ''
-
-
 def main():
     parser = argparse.ArgumentParser(description='Pytorch Image Template')
     parser.add_argument('opt_path', type=str, help='Experiment name')
     parser.add_argument('--ckpt', type=str, default=None, help='checkpoint')
-    parser.add_argument('--debug', action='store_true', help='checkpoint')
+    parser.add_argument('--debug', action='store_true', help='debug')
     args = parser.parse_args()
 
     with open(f'{args.opt_path}') as f:

@@ -82,7 +82,7 @@ def get_root_logger(logger_name='runner', log_level=logging.INFO, exp_dir='./'):
         logger = logging.getLogger(logger_name)
         return logger
 
-    logging.config.fileConfig('./utils/logger/logging.conf')
+    logging.config.fileConfig('./config/logging.conf')
     logger = logging.getLogger(logger_name)
 
     logger.setLevel(log_level)
