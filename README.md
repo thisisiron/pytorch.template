@@ -1,4 +1,4 @@
-# Pytorch Template
+# Pytorch Template Runner 🏃‍♂️🏃‍♀️
 
 ## Requirements
 - Pytorch
