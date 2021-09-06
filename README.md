@@ -12,6 +12,9 @@ pytorch.template/
 │
 ├── main.py          -> main script to start training
 │
+├── config/ 
+│   └── logging.conf
+│
 ├── dataloaders/ 
 │   ├── DATASET.py   ->
 │   └── transform.py
@@ -20,8 +23,9 @@ pytorch.template/
 ├── options/         ->
 ├── runners/         ->
 │   └── base.py
+│
 └── utils/ 
-    ├── logger/      ->
+    ├── logger.py
     ├── general.py
     ├── losses.py
     ├── meter.py
@@ -33,7 +37,7 @@ pytorch.template/
 ## Usage
 Ex. Run main.py in background
 ```
-python main.py options/CONFIG.yaml
+python main.py options/OPTS.yaml
 ```
 
 ### Tensorboad
