@@ -12,7 +12,7 @@ from models.pix2pix.model import define_G
 from models.pix2pix.model import define_D
 
 from utils import get_root_logger
-from utils.losses import GANLoss
+from losses.gan_loss import GANLoss
 from utils.optims import get_optimizer
 from utils.schedulers import get_scheduler
 from utils.meter import AverageMeter
@@ -167,41 +167,44 @@ class Pix2PixRunner(Runner):
 
     def load_checkpoint(self):
         logger = get_root_logger()
+
         filename = self.opt.init_weight
         if filename is None:
             return
-        try:
 
+        try:
             logger.info("Loading checkpoint '{}'".format(filename))
             ckpt = torch.load(filename)
 
             self.current_epoch = ckpt['epoch']
-            self.current_iter = ckpt['iteration']
+            self.current_iter = ckpt['iter']
             self.generator.load_state_dict(ckpt['generator'], strict=True)
             self.g_optimizer.load_state_dict(ckpt['g_optimizer'])
             self.discriminator.load_state_dict(ckpt['discriminator'], strict=True)
             self.d_optimizer.load_state_dict(ckpt['d_optimizer'])
-            self.seed = ckpt['seed']
 
             logger.info(colorstr('blue', f"Checkpoint loaded successfully from {self.opt.exp_dir} \
                     at (epoch {self.current_epoch}) at (iteration {self.current_iter})"))
         except FileNotFoundError as e:
             logger.info(colorstr('red', f"Checkpoint is not exist from {filename}"))
-            # raise
+            # raise e
 
     def save_checkpoint(self):
+        logger = get_root_logger()
+
         state = {
             'epoch': self.current_epoch,
-            'iteration': self.current_iter,
+            'iter': self.current_iter,
             'generator': self.generator.module.state_dict() if torch.cuda.device_count() > 1 else self.generator.state_dict(),
             'g_optimizer': self.g_optimizer.state_dict(),
             'discriminator': self.discriminator.module.state_dict() if torch.cuda.device_count() > 1 else self.discriminator.state_dict(),
             'd_optimizer': self.d_optimizer.state_dict(),
-            'seed': self.opt.seed
         }
 
         # Save the state
         torch.save(state, os.path.join(self.opt.exp_dir, 'weights', f'ckpt{self.current_epoch}.pth.tar'))
+        
+        logger.info('Saving models and training states.')
 
     def finalize(self):
         pass

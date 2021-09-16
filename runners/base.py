@@ -3,18 +3,17 @@ import yaml
 from datetime import datetime
 
 from utils import MessageLogger
-from utils.tensorboard import get_tb_writer
 
 
 class Runner:
     def __init__(self, opt):
         self.opt = opt
 
-        # set  tensorboard
-        tb_writer = get_tb_writer(self.opt.exp_dir)  if opt.use_tb_logger else None
-
         # set logger
-        self.messenger = MessageLogger(opt, tb_writer=tb_writer)
+        self.messenger = MessageLogger(opt)
+        
+        if not self.opt.use_tensorboard:
+            self.opt.wandb_resume_id = self.messenger.wandb_id 
 
         self.save_option()
 
@@ -32,9 +31,6 @@ class Runner:
         raise NotImplementedError
 
     def train(self):
-        raise NotImplementedError
-
-    def run_batches(self):
         raise NotImplementedError
 
     def validate(self):
