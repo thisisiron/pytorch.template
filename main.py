@@ -26,8 +26,7 @@ def main():
         opt = argparse.Namespace(**yaml.safe_load(f))  # replace
 
     if opt.exp_dir is not None:
-        self.opt.init_weight = os.path.join(self.opt.exp_dir, 'weights', f'ckpt{self.opt.ckpt}.pth.tar')
-        opt.init_weight = opt.exp_dir
+        opt.init_weight = os.path.join(opt.exp_dir, 'weights', f'ckpt{opt.ckpt}.pth.tar')
 
     opt.exp_dir = make_expdir(opt.name)
     

@@ -70,7 +70,7 @@ def get_transforms(image_size: Tuple[int], augment_type: str = 'default', image_
     val_transform = A.Compose([
         A.Resize(height=image_size[0], width=image_size[1]),
         A.Normalize(mean=mean, std=std)
-    ])
+        ], additional_targets={'image2':'image'})
 
     return train_transform, val_transform
 
